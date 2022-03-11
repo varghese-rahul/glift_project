@@ -78,6 +78,32 @@ def simulate_comparator(op, a_inp, b_inp, a_t_inp, b_t_inp):
     return less, equal, greater, less_t, equal_t, greater_t
 
 
+def simulate_multiplier(op, a_inp, b_inp, a_t_inp, b_t_inp):
+    
+    a, b = pyrtl.Input(BITMAX, 'a'), pyrtl.Input(BITMAX, 'b')
+    a_t, b_t = pyrtl.Input(BITMAX, 'a_t'), pyrtl.Input(BITMAX, 'b_t')
+    start = pyrtl.Const(1,1,'start')
+
+    p, p_t, done = multiplier_32bit(a, b, a_t, b_t, start, 4)
+
+    sim_trace = pyrtl.SimulationTrace()
+    sim = pyrtl.Simulation(tracer=sim_trace)
+
+    sim_inputs = {
+        'a': 2,
+        'b': 3,
+        'a_t': 0,
+        'b_t': 0
+    }
+
+    sim.step(sim_inputs)
+
+    p_val, p_t_val = sim.inspect(p), sim.inspect(p_t)
+    done_val = sim.inspect(done)
+
+    return p_val, p_t_val
+
+
 def execute(op, a, b, a_t=None, b_t=None, c=None, c_t=None):
     if op=='AND' or op=='OR' or op=='XOR' or op=='XNOR':
         return simulate_gates(op, a, b, a_t, b_t)
@@ -85,7 +111,8 @@ def execute(op, a, b, a_t=None, b_t=None, c=None, c_t=None):
         sum, carry, sum_t, carry_t = simulate_add(op, a, b, c, a_t, b_t, c_t)
         return sum, carry, sum_t, carry_t
     elif op=="MULT":
-        o, o_t = multiplier_32bit(a, b, a_t, b_t)
+        p, p_t = simulate_multiplier(op, a, b, a_t, b_t)
+        return p, p_t
     elif op=="COMP":
         less, equal, greater, less_t, equal_t, greater_t = simulate_comparator(op, a, b, a_t, b_t)
         return less, equal, greater, less_t, equal_t, greater_t
@@ -97,7 +124,13 @@ def execute(op, a, b, a_t=None, b_t=None, c=None, c_t=None):
 if __name__=='__main__':
 
     # NOTE: for ADD, the inputs to execute look like (a, b, a_t, b_t, c, c_t)
-    print(execute('ADD', 2, 3, 7, 7, 0, 7))
+    # print(execute('ADD', 2, 3, 7, 7, 0, 7))
 
     # RUN to execute comparison
     # print(execute('COMP', 2, 3, 0, 7, 7, 0))
+
+    # print(execute('AND',1,1,0,1,0,0))
+
+    # print(execute('XOR',400,4,7,7,0,7))
+
+    print(execute('MULT',2,3,0,7,7,0))
