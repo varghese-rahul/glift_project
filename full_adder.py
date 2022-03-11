@@ -15,14 +15,15 @@ def full_adder(a, b, c, a_t, b_t, c_t):
     carry, carry_t = or_gate(carry1, carry2, carry1_t, carry2_t)
     return sum, carry, sum_t, carry_t
 
-def full_adder_32bit(a_32, b_32, c_32, a_t_32, b_t_32, c_t_32):
-    s_32, s_t_32 = 0, 0 
-    
-    c, c_t = c_32 & 1, c_t_32 & 1 
-    for i in range(BITMAX):
-        a, b = a_32>>i & 1, b_32>>i & 1 
-        a_t, b_t = a_t_32>>i & 1, b_t_32>>i & 1
-        s, c, s_t, c_t = full_adder(a, b, c, a_t, b_t, c_t)
-        s_32 += s<<i
-        s_t_32 += s_t<<i
-    return s_32, c, s_t_32, c_t
+
+def full_adder_32bit(a_32, b_32, c_32, a_t_32, b_t_32, c_t_32, n=1):
+    a_32, b_32, c_32, a_t_32, b_t_32, c_t_32 = pyrtl.match_bitwidth(a_32, b_32, c_32, a_t_32, b_t_32, c_t_32)
+
+    if len(a_32) <= n:
+        sum, carry, sum_t, carry_t = full_adder(a_32, b_32, c_32, a_t_32, b_t_32, c_t_32)
+        return sum, carry, sum_t, carry_t 
+    else:
+        sum, carry, sum_t, carry_t = full_adder(a_32[0:n], b_32[0:n], c_32[0:n], a_t_32[0:n], b_t_32[0:n], c_t_32[0:n])
+        sum_32, carry_32, sum_t_32, carry_t_32 = full_adder_32bit(a_32[n:], b_32[n:], carry, a_t_32[n:], b_t_32[n:], carry_t)
+        return pyrtl.concat(sum_32, sum), carry_32, pyrtl.concat(sum_t_32, sum_t), carry_t_32
+

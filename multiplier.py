@@ -41,3 +41,8 @@ def multiplier(a, b, a_t, b_t):
     p[6], p[7], p_t[6], p_t[7] = full_adder(w11, w31, w29, x11, x31, x29)
 
     return p, p_t
+
+def multiplier_32bit(a_32, b_32, c_32, a_t_32, b_t_32, c_t_32, n=4):
+    a_32, b_32, a_t_32, b_t_32, c_t_32 = pyrtl.match_bitwidth(a_32, b_32, c_32, a_t_32, b_t_32, c_t_32)
+
+    return p, p_t
