@@ -82,24 +82,25 @@ def simulate_multiplier(op, a_inp, b_inp, a_t_inp, b_t_inp):
     
     a, b = pyrtl.Input(BITMAX, 'a'), pyrtl.Input(BITMAX, 'b')
     a_t, b_t = pyrtl.Input(BITMAX, 'a_t'), pyrtl.Input(BITMAX, 'b_t')
-    start = pyrtl.Const(1,1,'start')
 
-    p, p_t, done = multiplier_32bit(a, b, a_t, b_t, start, 4)
+    # p, p_t = multiplier(a, b, a_t, b_t)
+    # p, p_t = multiplier_8bit(a, b, a_t, b_t)
+    # p, p_t = multiplier_16bit(a, b, a_t, b_t)
+    p, p_t = multiplier_32bit(a, b, a_t, b_t)
 
     sim_trace = pyrtl.SimulationTrace()
     sim = pyrtl.Simulation(tracer=sim_trace)
 
     sim_inputs = {
-        'a': 2,
-        'b': 3,
-        'a_t': 0,
-        'b_t': 0
+        'a': a_inp,
+        'b': b_inp,
+        'a_t': a_t_inp,
+        'b_t': b_t_inp
     }
 
     sim.step(sim_inputs)
 
     p_val, p_t_val = sim.inspect(p), sim.inspect(p_t)
-    done_val = sim.inspect(done)
 
     return p_val, p_t_val
 
@@ -133,4 +134,4 @@ if __name__=='__main__':
 
     # print(execute('XOR',400,4,7,7,0,7))
 
-    print(execute('MULT',2,3,0,7,7,0))
+    print(execute('MULT',200,3500,0,7,7,0))

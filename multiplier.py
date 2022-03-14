@@ -44,43 +44,100 @@ def multiplier(a, b, a_t, b_t):
 
     
 
-def multiplier_32bit(a_32, b_32, a_t_32, b_t_32, start, shifts=4):
+def multiplier_8bit(a_32, b_32, a_t_32, b_t_32, bitlen = 16):
     a_32, b_32, a_t_32, b_t_32 = pyrtl.match_bitwidth(a_32, b_32, a_t_32, b_t_32)
 
-    alen = len(a_32)
-    blen = len(b_32)
-    a_tlen = len(a_t_32)
-    b_tlen = len(b_t_32)
-    areg = pyrtl.Register(alen)
-    breg = pyrtl.Register(blen + alen)
-    accum = pyrtl.Register(blen + alen)
-    a_treg = pyrtl.Register(a_tlen)
-    b_treg = pyrtl.Register(b_tlen + a_tlen)
-    accum_t = pyrtl.Register(b_tlen + a_tlen)
-    done = (areg == 0) 
+    n = bitlen//2
 
-    if (shifts > alen) or (shifts > blen) or (shifts > a_tlen) or (shifts > b_tlen):
-        raise pyrtl.PyrtlError("shift is larger than one or both of the parameters A or B,"
-                               "please choose smaller shift")
+    try:    p1, pt1 = multiplier(a_32[0:(n//2)], b_32[0:(n//2)], a_t_32[0:(n//2)], b_t_32[0:(n//2)])
+    except: p1, pt1 = [0]*n, [0]*n
+
+    try:    p2, pt2 = multiplier(a_32[0:(n//2)], b_32[(n//2):n], a_t_32[0:(n//2)], b_t_32[(n//2):n])
+    except: p2, pt2 = [0]*n, [0]*n
+
+    try:    p3, pt3 = multiplier(a_32[(n//2):n], b_32[0:(n//2)], a_t_32[(n//2):n], b_t_32[0:(n//2)])
+    except: p3, pt3 = [0]*n, [0]*n
+
+    try:    p4, pt4 = multiplier(a_32[(n//2):n], b_32[(n//2):n], a_t_32[(n//2):n], b_t_32[(n//2):n])
+    except: p4, pt4 = [0]*n, [0]*n
+
+    s1, c1, st1, ct1 = full_adder_32bit(pyrtl.concat_list(p2), pyrtl.concat_list(p3), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list(pt2), pyrtl.concat_list(pt3), pyrtl.Const(0b0))
+    
+    s2, c2, st2, ct2 = full_adder_32bit(pyrtl.concat_list(s1), pyrtl.concat_list(p1[(n//2):n]), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list(st1), pyrtl.concat_list(pt1[(n//2):n]), pyrtl.Const(0b0))
+
+    s3, c3, st3, ct3 = full_adder_32bit(pyrtl.concat_list([s2[(n//2):n], c1]), pyrtl.concat_list(p4), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list([st2[(n//2):n], ct1]), pyrtl.concat_list(pt4), pyrtl.Const(0b0))
 
 
-    with pyrtl.conditional_assignment:
+    p = [p1[:(n//2)], s2[:(n//2)], s3]
+    p_t = [pt1[:(n//2)], st2[:(n//2)], st3]
 
-        with start: 
-            areg.next |= a_32
-            breg.next |= b_32
-            accum.next |= 0
-            a_treg.next |= a_t_32
-            b_treg.next |= b_t_32
-            accum_t.next |= 0
+    return pyrtl.concat_list(p), pyrtl.concat_list(p_t)
+    
 
-        with ~done:  
-            areg.next |= libutils._shifted_reg_next(areg, 'r', shifts)  
-            breg.next |= libutils._shifted_reg_next(breg, 'l', shifts)  
-            a_treg.next |= libutils._shifted_reg_next(a_treg, 'r', shifts) 
-            b_treg.next |= libutils._shifted_reg_next(b_treg, 'l', shifts)  
-            p, p_t = multiplier(areg, breg, a_treg, b_treg)
-            accum.next |= accum + p
-            accum_t.next |= accum_t + p_t
 
-    return accum, accum_t, done
+def multiplier_16bit(a_32, b_32, a_t_32, b_t_32, bitlen = 32):
+    a_32, b_32, a_t_32, b_t_32 = pyrtl.match_bitwidth(a_32, b_32, a_t_32, b_t_32)
+
+    n = bitlen//2
+
+    try:    p1, pt1 = multiplier_8bit(a_32[0:(n//2)], b_32[0:(n//2)], a_t_32[0:(n//2)], b_t_32[0:(n//2)])
+    except: p1, pt1 = [0]*n, [0]*n
+
+    try:    p2, pt2 = multiplier_8bit(a_32[0:(n//2)], b_32[(n//2):n], a_t_32[0:(n//2)], b_t_32[(n//2):n])
+    except: p2, pt2 = [0]*n, [0]*n
+
+    try:    p3, pt3 = multiplier_8bit(a_32[(n//2):n], b_32[0:(n//2)], a_t_32[(n//2):n], b_t_32[0:(n//2)])
+    except: p3, pt3 = [0]*n, [0]*n
+
+    try:    p4, pt4 = multiplier_8bit(a_32[(n//2):n], b_32[(n//2):n], a_t_32[(n//2):n], b_t_32[(n//2):n])
+    except: p4, pt4 = [0]*n, [0]*n
+
+    s1, c1, st1, ct1 = full_adder_32bit(pyrtl.concat_list(p2), pyrtl.concat_list(p3), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list(pt2), pyrtl.concat_list(pt3), pyrtl.Const(0b0))
+    
+    s2, c2, st2, ct2 = full_adder_32bit(pyrtl.concat_list(s1), pyrtl.concat_list(p1[(n//2):n]), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list(st1), pyrtl.concat_list(pt1[(n//2):n]), pyrtl.Const(0b0))
+
+    s3, c3, st3, ct3 = full_adder_32bit(pyrtl.concat_list([s2[(n//2):n], c1]), pyrtl.concat_list(p4), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list([st2[(n//2):n], ct1]), pyrtl.concat_list(pt4), pyrtl.Const(0b0))
+
+    p = [p1[:(n//2)], s2[:(n//2)], s3]
+    p_t = [pt1[:(n//2)], st2[:(n//2)], st3]
+
+    return pyrtl.concat_list(p), pyrtl.concat_list(p_t)
+    
+
+
+def multiplier_32bit(a_32, b_32, a_t_32, b_t_32, bitlen = 64):
+    a_32, b_32, a_t_32, b_t_32 = pyrtl.match_bitwidth(a_32, b_32, a_t_32, b_t_32)
+
+    n = bitlen//2
+
+    try:    p1, pt1 = multiplier_16bit(a_32[0:(n//2)], b_32[0:(n//2)], a_t_32[0:(n//2)], b_t_32[0:(n//2)])
+    except: p1, pt1 = [0]*n, [0]*n
+
+    try:    p2, pt2 = multiplier_16bit(a_32[0:(n//2)], b_32[(n//2):n], a_t_32[0:(n//2)], b_t_32[(n//2):n])
+    except: p2, pt2 = [0]*n, [0]*n
+
+    try:    p3, pt3 = multiplier_16bit(a_32[(n//2):n], b_32[0:(n//2)], a_t_32[(n//2):n], b_t_32[0:(n//2)])
+    except: p3, pt3 = [0]*n, [0]*n
+
+    try:    p4, pt4 = multiplier_16bit(a_32[(n//2):n], b_32[(n//2):n], a_t_32[(n//2):n], b_t_32[(n//2):n])
+    except: p4, pt4 = [0]*n, [0]*n
+
+    s1, c1, st1, ct1 = full_adder_32bit(pyrtl.concat_list(p2), pyrtl.concat_list(p3), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list(pt2), pyrtl.concat_list(pt3), pyrtl.Const(0b0))
+    
+    s2, c2, st2, ct2 = full_adder_32bit(pyrtl.concat_list(s1), pyrtl.concat_list(p1[(n//2):n]), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list(st1), pyrtl.concat_list(pt1[(n//2):n]), pyrtl.Const(0b0))
+
+    s3, c3, st3, ct3 = full_adder_32bit(pyrtl.concat_list([s2[(n//2):n], c1]), pyrtl.concat_list(p4), pyrtl.Const(0b0), 
+                                        pyrtl.concat_list([st2[(n//2):n], ct1]), pyrtl.concat_list(pt4), pyrtl.Const(0b0))
+
+    p = [p1[:(n//2)], s2[:(n//2)], s3]
+    p_t = [pt1[:(n//2)], st2[:(n//2)], st3]
+
+    return pyrtl.concat_list(p), pyrtl.concat_list(p_t)
