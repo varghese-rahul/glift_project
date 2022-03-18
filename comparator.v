@@ -108,3 +108,54 @@ module comparator (input [3:0] a, input [3:0] b,input [3:0] a_t, input [3:0] b_t
   glfit_or g21(q9, n35, q10, n36, less, less_t);
  
 endmodule
+
+module tb;
+  
+  reg [3:0] a;
+  reg [3:0] b;
+  reg [3:0] a_t;
+  reg [3:0] b_t;
+  wire less, equal, greater, less_t, equal_t, greater_t;
+  //wire o_t;
+  
+
+
+  //glfit_and dut(a, b, a_t, b_t, o_t);
+  //glfit_or dut(a, b, a_t, b_t, o_t);
+  //glfit_xor dut(a, b, a_t, b_t, o_t);
+  comparator dut(a, b, a_t, b_t, less, equal, greater, less_t, equal_t, greater_t); 
+
+  initial begin
+
+    $monitor(less, equal, greater, less_t, equal_t, greater_t); 
+
+    #5
+    a = 4'b1111;
+    b = 4'b1111;
+    a_t = 4'b1111;
+    b_t = 4'b1111;
+    
+    #5
+    a = 4'b0111;
+    b = 4'b1111;
+    a_t = 4'b1111;
+    b_t = 4'b1111;
+
+    #5
+    a = 4'b1111;
+    b = 4'b0111;
+    a_t = 4'b1111;
+    b_t = 4'b1111;
+    
+    #10
+    
+    $finish;
+ 
+  end
+  
+  initial begin
+      $dumpfile("dump.vcd");
+      $dumpvars(0,tb);
+  end
+  
+endmodule
